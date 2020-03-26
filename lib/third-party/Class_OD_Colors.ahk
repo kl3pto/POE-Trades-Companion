@@ -186,25 +186,25 @@ Class OD_Colors {
          If ODCtrl.Colors.HasKey("B")
             CtrlBgC := ODCtrl.Colors.B
          Else
-            CtrlBgC := DllCall("Gdi32.dll\GetBkColor", "Ptr", HDC, "UInt")
+            CtrlBgC := DllCall(A_ScriptDir "\32_gdi32.dll\GetBkColor", "Ptr", HDC, "UInt")
          If ODCtrl.Colors.HasKey("T")
             CtrlTxC := ODCtrl.Colors.T
          Else
-            CtrlTxC := DllCall("Gdi32.dll\GetTextColor", "Ptr", HDC, "UInt")
+            CtrlTxC := DllCall(A_ScriptDir "\32_gdi32.dll\GetTextColor", "Ptr", HDC, "UInt")
          BgC := ODCtrl.Colors[Item].HasKey("B") ? ODCtrl.Colors[Item].B : CtrlBgC
-         Brush := DllCall("Gdi32.dll\CreateSolidBrush", "UInt", BgC, "UPtr")
+         Brush := DllCall(A_ScriptDir "\32_gdi32.dll\CreateSolidBrush", "UInt", BgC, "UPtr")
          DllCall("User32.dll\FillRect", "Ptr", HDC, "Ptr", RECT, "Ptr", Brush)
-         DllCall("Gdi32.dll\DeleteObject", "Ptr", Brush)
+         DllCall(A_ScriptDir "\32_gdi32.dll\DeleteObject", "Ptr", Brush)
          Txt := ODCtrl.Items[Item], Len := StrLen(Txt)
          TxC := ODCtrl.Colors[Item].HasKey("T") ? ODCtrl.Colors[Item].T : CtrlTxC
          NumPut(NumGet(RECT + 0, 0, "Int") + 2, RECT + 0, 0, "Int")
-         DllCall("Gdi32.dll\SetBkMode", "Ptr", HDC, "Int", 1) ; TRANSPARENT
-         DllCall("Gdi32.dll\SetTextColor", "Ptr", HDC, "UInt", TxC)
+         DllCall(A_ScriptDir "\32_gdi32.dll\SetBkMode", "Ptr", HDC, "Int", 1) ; TRANSPARENT
+         DllCall(A_ScriptDir "\32_gdi32.dll\SetTextColor", "Ptr", HDC, "UInt", TxC)
          DllCall("User32.dll\DrawText", "Ptr", HDC, "Ptr", &Txt, "Int", Len, "Ptr", RECT, "UInt", DT_Flags)
          NumPut(NumGet(RECT + 0, 0, "Int") - 2, RECT + 0, 0, "Int")
          If (State & ODS_SELECTED)
             DllCall("User32.dll\DrawFocusRect", "Ptr", HDC, "Ptr", RECT)
-         DllCall("Gdi32.dll\SetTextColor", "Ptr", HDC, "UInt", CtrlTxC)
+         DllCall(A_ScriptDir "\32_gdi32.dll\SetTextColor", "Ptr", HDC, "UInt", CtrlTxC)
          Return True
       }
    }
