@@ -95,28 +95,50 @@ Load_Or_Unload_Fonts(whatDo) {
 
 	if (whatDo = "LOAD") {
 		PROGRAM["FONTS"] := {}
-		DllCall("gdiplus\GdipNewPrivateFontCollection", "uint*", hCollection)
+		DllCall("gdiplus.dll\GdipNewPrivateFontCollection", "uint*", hCollection)
 	}
 
 	Loop, Files, %fontsFolder%\*.ttf
 	{
 		fontFile := A_LoopFileFullPath, fontTitle := FGP_Value(A_LoopFileFullPath, 21)	; 21 = Title
 		if ( whatDo="LOAD") {
-			DllCall( "GDI32.DLL\AddFontResourceEx", Str, fontFile,UInt,(FR_PRIVATE:=0x10), Int,0)
-			DllCall("gdiplus\GdipPrivateAddFontFile", "uint", hCollection, "uint", &fontFile)
-			DllCall("gdiplus\GdipCreateFontFamilyFromName", "uint", &fontTitle, "uint", hCollection, "uint*", hFamily)
+			ret1 := DllCall("gdi32.dll\AddFontResourceEx", Str, fontFile, UInt, (FR_PRIVATE:=0x10), Int, 0)
+			ret2 := DllCall("gdiplus.dll\GdipPrivateAddFontFile", "uint", hCollection, "uint", &fontFile)
+			ret3 := DllCall("gdiplus.dll\GdipCreateFontFamilyFromName", "uint", &fontTitle, "uint", hCollection, "uint*", hFamily)
 			if (hFamily) {
 				PROGRAM.FONTS[fontTitle] := hFamily
 				AppendToLogs(A_ThisFunc "(): Loaded font file """ A_LoopFileName """ with title """ fontTitle """ inside family """ hFamily """.")
 			}
 			else
 				AppendToLogs(A_ThisFunc "(): Couldn't load font file """ A_LoopFileName """ with title """ fontTitle """ (family=""" hFamily """)!")
+
+			msgStr := "Font title: " fontTitle " - Pointer: " &fontTitle
+			. "`nFile: " fontFile " - Pointer: " &fontFile
+			. "`nFont collection: " hCollection
+			. "`nFont family: " hFamily
+			. "`nAddFontResourceEx(): " ret1
+			. "`nGdipPrivateAddFontFile(): " ret2
+			. "`nGdipCreateFontFamilyFromName(): " ret3
+
+			fullMsgStr := fullMsgStr ? fullMsgStr "`n`n" msgStr : msgStr
 		}
 		else if ( whatDo="UNLOAD") {
 			Gdip_DeleteFontFamily(PROGRAM.FONTS[fontTitle])
-			DllCall( "GDI32.DLL\RemoveFontResourceEx",Str, A_LoopFileFullPath,UInt,(FR_PRIVATE:=0x10),Int,0)
+			DllCall( "gdi32.dll\RemoveFontResourceEx",Str, A_LoopFileFullPath,UInt,(FR_PRIVATE:=0x10),Int,0)
 			AppendToLogs(A_ThisFunc "(): Unloaded font with title """ fontTitle ".")
-		}
+		}		
+	}
+
+	if (fullMsgStr) {
+		gdi32DllSys32Str := FileExist(A_WinDir "\System32\gdi32.dll") ? "gdi32.dll found in " A_WinDir "\System32\gdi32.dll" : "gdi32.dll NOT FOUND IN " A_WinDir "\System32\gdi32.dll"
+		gdi32DllSys64Str := FileExist(A_WinDir "\SysWow64\gdi32.dll") ? "gdi32.dll found in " A_WinDir "\SysWow64\gdi32.dll" : "gdi32.dll NOT FOUND IN " A_WinDir "\SysWow64\gdi32.dll"
+		gdiplusDllSys32Str := FileExist(A_WinDir "\System32\gdiplus.dll") ? "gdiplus.dll found in " A_WinDir "\System32\gdiplus.dll" : "gdiplus.dll NOT FOUND IN " A_WinDir "\System32\gdiplus.dll"
+		gdiplusDllSys64Str := FileExist(A_WinDir "\SysWow64\gdiplus.dll") ? "gdiplus.dll found in " A_WinDir "\SysWow64\gdiplus.dll" : "gdiplus.dll NOT FOUND IN " A_WinDir "\SysWow64\gdiplus.dll"
+		os64Or32Str := A_Is64bitOS ? "OS is 64 bits" : "OS is 32 bits"
+		
+		msgbox % "Send me the content of this box. Press ALT+PrintScreen to take a screenshot of this window only."
+		. "`n`n" os64Or32Str "`n" gdi32DllSys32Str "`n" gdi32DllSys64Str "`n" gdiplusDllSys32Str "`n" gdiplusDllSys64Str
+		. "`n`n" fullMsgStr
 	}
 
 	if (whatDo = "UNLOAD")
