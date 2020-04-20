@@ -101,11 +101,41 @@ Load_Or_Unload_Fonts(whatDo) {
 	Loop, Files, %fontsFolder%\*.ttf
 	{
 		fontFile := A_LoopFileFullPath, fontTitle := FGP_Value(A_LoopFileFullPath, 21)	; 21 = Title
+		fontName := fontTitle
 		if ( whatDo="LOAD") {
-			ret1 := DllCall(A_ScriptDir "\32_gdi32.dll\AddFontResourceEx", "WStr", fontFile, "UInt", (FR_PRIVATE:=0x10), "Int", 0), ret1 .= " " A_LastError " " ErrorLevel
-			ret2 := DllCall(A_ScriptDir "\32_gdiplus.dll\GdipPrivateAddFontFile", "uint", hCollection, "uint", &fontFile), ret2 .= " " A_LastError " " ErrorLevel
-			ret3 := DllCall(A_ScriptDir "\32_gdiplus.dll\GdipCreateFontFamilyFromName", "uint", &fontTitle, "uint", hCollection, "uint*", hFamily), ret3 .= " " A_LastError " " ErrorLevel
-			
+
+			if (!A_IsUnicode) {
+				msgbox YOU SHOULDNT SEE THIS
+				nSize:=DllCall("kernel32\MultiByteToWideChar", "Uint", 0, "Uint", 0, "Uint", &Fontfile, "int", -1, "Uint", 0, "int", 0)
+				VarSetCapacity(wFontfile, nSize * 2 + 1)
+				DllCall("kernel32\MultiByteToWideChar", "Uint", 0, "Uint", 0, "Uint", &Fontfile, "int", -1, "Uint", &wFontfile, "int", nSize + 1)
+
+				nSize:=DllCall("kernel32\MultiByteToWideChar", "Uint", 0, "Uint", 0, "Uint", &FontName, "int", -1, "Uint", 0, "int", 0)
+				VarSetCapacity(wFontName, nSize * 2 + 1)
+				DllCall("kernel32\MultiByteToWideChar", "Uint", 0, "Uint", 0, "Uint", &FontName, "int", -1, "Uint", &wFontName, "int", nSize + 1)
+
+				DllCall("gdiplus\GdipNewPrivateFontCollection", "uint*", hcollection)
+				DllCall("gdiplus\GdipPrivateAddFontFile", "uint", hcollection, "uint", &wFontfile)
+				DllCall("gdiplus\GdipCreateFontFamilyFromName", "uint", &wFontName, "uint", hcollection, "uint*", hFamily)
+			}
+    		else {
+				; ret1 := DllCall(A_ScriptDir "\32_gdi32.dll\AddFontResourceEx", "Str", fontFile, "UInt", FR_PRIVATE:=0x10, "UInt", 0 ), ret1 .= " " A_LastError " " ErrorLevel
+				ret2 := DllCall(A_ScriptDir "\32_gdiplus.dll\GdipPrivateAddFontFile", "uint", hcollection, "uint", &FontFile), ret2 .= " " A_LastError " " ErrorLevel
+				hFamily := Gdip_FontFamilyCreate(fontTitle, ret3)
+				; ret3 := DllCall(A_ScriptDir "\32_gdiplus.dll\GdipCreateFontFamilyFromName", "uint", &FontName, "uint", hcollection, "uint*", hFamily), ret3 .= " " A_LastError " " ErrorLevel
+      		}
+
+/*
+			; ret1 := DllCall(A_ScriptDir "\32_gdi32.dll\AddFontResourceEx", "WStr", fontFile, "UInt", (FR_PRIVATE:=0x10), "Int", 0), ret1 .= " " A_LastError " " ErrorLevel
+			ret1 := DllCall(A_ScriptDir "\32_gdi32.dll\AddFontResourceEx", "Str", fontFile, "UInt", FR_PRIVATE:=0x10, "UInt", 0 )
+
+
+			Ptr := A_PtrSize ? "UPtr" : "UInt"
+			ret2 := DllCall(A_ScriptDir "\32_gdiplus.dll\GdipPrivateAddFontFile", Ptr, hCollection, Ptr, &fontFile), ret2 .= " " A_LastError " " ErrorLevel
+
+			hFamily := Gdip_FontFamilyCreate(fontTitle, ret3)
+			; ret3 := DllCall(A_ScriptDir "\32_gdiplus.dll\GdipCreateFontFamilyFromName", A_PtrSize ? "UPtr" : "UInt", fontTitle, A_PtrSize ? "UPtr" : "UInt", hCollection, A_PtrSize ? "UPtr*" : "UInt*", hFamily), ret3 .= " " A_LastError " " ErrorLevel
+*/
 			if (hFamily) {
 				PROGRAM.FONTS[fontTitle] := hFamily
 				AppendToLogs(A_ThisFunc "(): Loaded font file """ A_LoopFileName """ with title """ fontTitle """ inside family """ hFamily """.")
@@ -117,7 +147,7 @@ Load_Or_Unload_Fonts(whatDo) {
 			. "`nFile: " fontFile " - Pointer: " &fontFile
 			. "`nFont collection: " hCollection
 			. "`nFont family: " hFamily
-			. "`nAddFontResourceEx(): " ret1
+			; . "`nAddFontResourceEx(): " ret1
 			. "`nGdipPrivateAddFontFile(): " ret2
 			. "`nGdipCreateFontFamilyFromName(): " ret3
 
@@ -131,18 +161,18 @@ Load_Or_Unload_Fonts(whatDo) {
 	}
 
 	if (fullMsgStr) {
-		FileGetSize, gdi32dllSys32Size,% A_WinDir "\System32\gdi32.dll"
-		gdi32DllSys32Str := FileExist(A_WinDir "\System32\gdi32.dll") ? A_ScriptDir "\32_gdi32.dll found in " A_WinDir "\System32\gdi32.dll - Size: " gdi32dllSys32Size " bytes" : A_ScriptDir "\32_gdi32.dll NOT FOUND IN " A_WinDir "\System32\gdi32.dll"
-		FileGetSize, gdi32dllSys64Size,% A_WinDir "\SysWow64\gdi32.dll"
-		gdi32DllSys64Str := FileExist(A_WinDir "\SysWow64\gdi32.dll") ? A_ScriptDir "\32_gdi32.dll found in " A_WinDir "\SysWow64\gdi32.dll - Size: " gdi32dllSys64Size " bytes" : A_ScriptDir "\32_gdi32.dll NOT FOUND IN " A_WinDir "\SysWow64\gdi32.dll"
-		FileGetSize, gdiplusDllSys32Size,% A_WinDir "\System32\gdiplus.dll"
-		gdiplusDllSys32Str := FileExist(A_WinDir "\System32\gdiplus.dll") ? A_ScriptDir "\32_gdiplus.dll found in " A_WinDir "\System32\gdiplus.dll - Size: " gdiplusDllSys32Size " bytes" : A_ScriptDir "\32_gdiplus.dll NOT FOUND IN " A_WinDir "\System32\gdiplus.dll"
-		FileGetSize, gdiplusDllSys64Size,% A_WinDir "\SysWow64\gdiplus.dll"
-		gdiplusDllSys64Str := FileExist(A_WinDir "\SysWow64\gdiplus.dll") ? A_ScriptDir "\32_gdiplus.dll found in " A_WinDir "\SysWow64\gdiplus.dll - Size: " gdiplusDllSys64Size " bytes" : A_ScriptDir "\32_gdiplus.dll NOT FOUND IN " A_WinDir "\SysWow64\gdiplus.dll"
-		os64Or32Str := A_Is64bitOS ? "OS is 64 bits" : "OS is 32 bits"
+		; FileGetSize, gdi32dllSys32Size,% A_WinDir "\System32\gdi32.dll"
+		; gdi32DllSys32Str := FileExist(A_WinDir "\System32\gdi32.dll") ? A_ScriptDir "\32_gdi32.dll found in " A_WinDir "\System32\gdi32.dll - Size: " gdi32dllSys32Size " bytes" : A_ScriptDir "\32_gdi32.dll NOT FOUND IN " A_WinDir "\System32\gdi32.dll"
+		; FileGetSize, gdi32dllSys64Size,% A_WinDir "\SysWow64\gdi32.dll"
+		; gdi32DllSys64Str := FileExist(A_WinDir "\SysWow64\gdi32.dll") ? A_ScriptDir "\32_gdi32.dll found in " A_WinDir "\SysWow64\gdi32.dll - Size: " gdi32dllSys64Size " bytes" : A_ScriptDir "\32_gdi32.dll NOT FOUND IN " A_WinDir "\SysWow64\gdi32.dll"
+		; FileGetSize, gdiplusDllSys32Size,% A_WinDir "\System32\gdiplus.dll"
+		; gdiplusDllSys32Str := FileExist(A_WinDir "\System32\gdiplus.dll") ? A_ScriptDir "\32_gdiplus.dll found in " A_WinDir "\System32\gdiplus.dll - Size: " gdiplusDllSys32Size " bytes" : A_ScriptDir "\32_gdiplus.dll NOT FOUND IN " A_WinDir "\System32\gdiplus.dll"
+		; FileGetSize, gdiplusDllSys64Size,% A_WinDir "\SysWow64\gdiplus.dll"
+		; gdiplusDllSys64Str := FileExist(A_WinDir "\SysWow64\gdiplus.dll") ? A_ScriptDir "\32_gdiplus.dll found in " A_WinDir "\SysWow64\gdiplus.dll - Size: " gdiplusDllSys64Size " bytes" : A_ScriptDir "\32_gdiplus.dll NOT FOUND IN " A_WinDir "\SysWow64\gdiplus.dll"
+		; os64Or32Str := A_Is64bitOS ? "OS is 64 bits" : "OS is 32 bits"
 		
 		msgbox % "Send me the content of this box. Press ALT+PrintScreen to take a screenshot of this window only."
-		. "`n`n" os64Or32Str "`n" gdi32DllSys32Str "`n" gdi32DllSys64Str "`n" gdiplusDllSys32Str "`n" gdiplusDllSys64Str
+		. "`n`n" os64Or32Str
 		. "`n`n" fullMsgStr
 	}
 

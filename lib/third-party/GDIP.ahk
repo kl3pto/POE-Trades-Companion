@@ -2346,7 +2346,7 @@ Gdip_FontCreate(hFamily, Size, Style=0)
    return hFont
 }
 
-Gdip_FontFamilyCreate(Font)
+Gdip_FontFamilyCreate(Font, ByRef dllRet="")
 {
 	Ptr := A_PtrSize ? "UPtr" : "UInt"
 	
@@ -2357,10 +2357,10 @@ Gdip_FontFamilyCreate(Font)
 		DllCall("MultiByteToWideChar", "uint", 0, "uint", 0, Ptr, &Font, "int", -1, Ptr, &wFont, "int", nSize)
 	}
 	
-	DllCall(A_ScriptDir "\32_gdiplus.dll\GdipCreateFontFamilyFromName"
+	dllRet := DllCall(A_ScriptDir "\32_gdiplus.dll\GdipCreateFontFamilyFromName"
 					, Ptr, A_IsUnicode ? &Font : &wFont
 					, "uint", 0
-					, A_PtrSize ? "UPtr*" : "UInt*", hFamily)
+					, A_PtrSize ? "UPtr*" : "UInt*", hFamily), dllRet .= " " A_LastError " " ErrorLevel
 	
 	return hFamily
 }
